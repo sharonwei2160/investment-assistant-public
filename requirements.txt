@@ -1,0 +1,4 @@
+yfinance
+boto3
+python-dotenv
+requests
