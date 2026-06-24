@@ -64,7 +64,6 @@ def send_stock_alert(
             f'今天收盤價：{stock["close"]}\n'
             f'距離高點跌幅：{stock["drop_from_high_pct"]}%\n'
             f'跌幅行動：{stock["action"] or "無"}\n'
-            f'月線 MA20：{stock["ma_month"]}\n'
             f'季線 MA60：{stock["ma_quarter"]}\n'
             f'年線 MA240：{stock["ma_year"]}\n'
             f'均線提醒：{stock["ma_alert"] or "無"}\n'

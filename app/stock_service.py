@@ -14,15 +14,11 @@ def get_action(drop_pct):
         return None
 
 
-def get_ma_alerts(close_price, ma_month, ma_quarter, ma_year):
+def get_ma_alerts(close_price, ma_quarter, ma_year):
     alerts = []
 
-    below_ma_month = close_price < ma_month
     below_ma_quarter = close_price < ma_quarter
     below_ma_year = close_price < ma_year
-
-    if below_ma_month:
-        alerts.append("跌破月線")
 
     if below_ma_quarter:
         alerts.append("跌破季線")
@@ -31,7 +27,6 @@ def get_ma_alerts(close_price, ma_month, ma_quarter, ma_year):
         alerts.append("跌破年線")
 
     return {
-        "below_ma_month": below_ma_month,
         "below_ma_quarter": below_ma_quarter,
         "below_ma_year": below_ma_year,
         "ma_alert": "、".join(alerts) if alerts else None
@@ -75,13 +70,11 @@ def get_stock_prices(watchlist):
                 2
             )
 
-            ma_month = float(history["Close"].tail(20).mean())
             ma_quarter = float(history["Close"].tail(60).mean())
             ma_year = float(history["Close"].tail(240).mean())
 
             ma_info = get_ma_alerts(
                 close_price=close_price,
-                ma_month=ma_month,
                 ma_quarter=ma_quarter,
                 ma_year=ma_year
             )
@@ -101,10 +94,8 @@ def get_stock_prices(watchlist):
                 "close": round(close_price, 2),
                 "drop_from_high_pct": drop_from_high_pct,
                 "action": action,
-                "ma_month": round(ma_month, 2),
                 "ma_quarter": round(ma_quarter, 2),
                 "ma_year": round(ma_year, 2),
-                "below_ma_month": ma_info["below_ma_month"],
                 "below_ma_quarter": ma_info["below_ma_quarter"],
                 "below_ma_year": ma_info["below_ma_year"],
                 "ma_alert": ma_info["ma_alert"]

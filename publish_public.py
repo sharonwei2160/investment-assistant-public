@@ -1,4 +1,4 @@
-import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -19,6 +19,21 @@ EXCLUDE_NAMES = {
     "lambda_deploy.zip",
 }
 
+EXCLUDE_SUFFIXES = {
+    ".xlsx",
+    ".csv",
+    ".db",
+    ".sqlite",
+}
+
+SECRET_PATTERNS = [
+    r"github_pat_[A-Za-z0-9_]+",
+    r"ghp_[A-Za-z0-9_]+",
+    r"Bearer\s+(github_pat_|ghp_)[A-Za-z0-9_]+",
+    r"AKIA[0-9A-Z]{16}",
+    r"aws_secret_access_key\s*=\s*[A-Za-z0-9/+=]{20,}",
+]
+
 
 def run_command(command, cwd=None):
     print(f"Running: {' '.join(command)}")
@@ -26,7 +41,13 @@ def run_command(command, cwd=None):
 
 
 def should_skip(path):
-    return any(part in EXCLUDE_NAMES for part in path.parts)
+    if any(part in EXCLUDE_NAMES for part in path.parts):
+        return True
+
+    if path.suffix in EXCLUDE_SUFFIXES:
+        return True
+
+    return False
 
 
 def copy_project():
@@ -43,7 +64,9 @@ def copy_project():
             item.unlink()
 
     for item in PRIVATE_REPO_DIR.iterdir():
-        if should_skip(item.relative_to(PRIVATE_REPO_DIR)):
+        relative_path = item.relative_to(PRIVATE_REPO_DIR)
+
+        if should_skip(relative_path):
             continue
 
         target = PUBLIC_REPO_DIR / item.name
@@ -60,11 +83,11 @@ def copy_project():
                     "*.pyc",
                     "*.xlsx",
                     "*.csv",
+                    "*.db",
+                    "*.sqlite",
                 ),
             )
         else:
-            if item.suffix in [".xlsx", ".csv"]:
-                continue
             shutil.copy2(item, target)
 
 
@@ -77,6 +100,54 @@ def replace_private_files():
 
     if sample_watchlist.exists():
         shutil.copy2(sample_watchlist, private_watchlist)
+
+
+def scan_for_secrets():
+    risky_files = []
+
+    for path in PUBLIC_REPO_DIR.rglob("*"):
+        if path.is_dir():
+            continue
+
+        if ".git" in path.parts:
+            continue
+
+        if path.suffix.lower() not in {".py", ".yml", ".yaml", ".md", ".json", ".txt", ".example"}:
+            continue
+
+        try:
+            content = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+
+        for pattern in SECRET_PATTERNS:
+            if re.search(pattern, content):
+                risky_files.append(str(path.relative_to(PUBLIC_REPO_DIR)))
+                break
+
+    if risky_files:
+        print("Potential secrets found in public repo:")
+        for file_name in risky_files:
+            print(f"- {file_name}")
+
+        raise RuntimeError("Public publish stopped because potential secrets were found.")
+
+    print("Secret scan passed.")
+
+
+def validate_public_repo():
+    env_file = PUBLIC_REPO_DIR / ".env"
+
+    if env_file.exists():
+        raise RuntimeError(".env should not exist in public repo.")
+
+    watchlist_file = PUBLIC_REPO_DIR / "app" / "watchlist.json"
+    sample_watchlist_file = PUBLIC_REPO_DIR / "app" / "watchlist_sample.json"
+
+    if sample_watchlist_file.exists() and not watchlist_file.exists():
+        raise RuntimeError("watchlist.json was not generated from watchlist_sample.json.")
+
+    scan_for_secrets()
 
 
 def commit_and_push():
@@ -105,6 +176,7 @@ def main():
     print("Start publishing public version...")
     copy_project()
     replace_private_files()
+    validate_public_repo()
     commit_and_push()
     print("Public repository updated successfully.")
 
