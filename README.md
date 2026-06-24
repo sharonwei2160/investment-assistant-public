@@ -1,6 +1,5 @@
 # 📈 Stock Alert System
 
-![Workflow](https://github.com/<USERNAME>/stock-alert-system/actions/workflows/stock-alert.yml/badge.svg)
 An automated stock monitoring system that tracks Taiwan and US stocks, stores historical prices in DynamoDB, and sends LINE notifications when predefined investment conditions are met.
 
 ---
