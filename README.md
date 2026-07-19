@@ -1,68 +1,116 @@
-# 📈 Stock Alert System
+# 📈 Stock Decision System
 
-An automated stock monitoring system that tracks Taiwan and US stocks, stores historical prices in DynamoDB, and sends LINE notifications when predefined investment conditions are met.
+An automated investment monitoring system that tracks Taiwan and US stocks, manages portfolio allocation and capital pools, generates daily investment recommendations, and delivers investment reports through Email and LINE.
 
----
-
-## 🚀 Features
-
-- 📊 Retrieve daily stock prices from Yahoo Finance
-- 🇹🇼 Monitor Taiwan market after close (14:00 Taiwan Time)
-- 🇺🇸 Monitor US market after close (07:00 Taiwan Time)
-- 💾 Store historical prices in Amazon DynamoDB
-- 📱 Send LINE notifications when price drops from historical high
-- ⚠️ Notify when stock data retrieval fails
-- 🚨 Notify when workflow execution fails
-- 🤖 Automated daily execution using GitHub Actions
+The project started as a simple stock alert system and is gradually evolving into a modular investment decision engine.
 
 ---
 
-## 🏗 Architecture
+# 🚀 Current Features
+
+### 📊 Market Monitoring
+
+* Retrieve daily Taiwan and US stock prices from Yahoo Finance
+* Monitor Taiwan market after close (14:00 Taiwan Time)
+* Monitor US market after close (07:00 Taiwan Time)
+* Store historical prices in Amazon DynamoDB
+* Calculate drawdown from historical highs
+* Detect moving average signals
+* Separate stock and bond ETF monitoring
+
+### 💼 Portfolio Management
+
+* Track portfolio holdings
+* Calculate current portfolio allocation
+* Compare current allocation with target allocation
+* Track multiple investment capital pools
+* Calculate deposited, invested and remaining capital
+
+### 💡 Investment Recommendation
+
+* Generate stock-level investment recommendations
+* Generate Daily Investment Brief
+* Build plain-text investment emails
+* Send investment reports by Email
+* Send stock alerts through LINE
+* Automated daily execution using GitHub Actions
+
+---
+
+# 🏗 Current Architecture
 
 ```text
-                GitHub Actions
-              (07:00 / 14:00)
+                    GitHub Actions
+                 (Daily Scheduled Run)
 
-                     │
-                     ▼
+                         │
+                         ▼
 
-              Python Application
+                  Python Application
 
-        ┌────────────┼────────────┐
-        │            │            │
-        ▼            ▼            ▼
+        ┌──────────────┼──────────────┐
+        │              │              │
+        ▼              ▼              ▼
 
- Yahoo Finance   DynamoDB      LINE Bot
-  (Market Data)  (History)   (Notification)
+ Yahoo Finance     Portfolio      Capital Manager
+  Market Data         Data          (Fund Balance)
+
+        │              │              │
+        └──────────────┼──────────────┘
+                       ▼
+
+              Recommendation Service
+
+                       │
+                       ▼
+
+               Daily Report Builder
+
+                       │
+        ┌──────────────┴──────────────┐
+        ▼                             ▼
+
+     Email Builder               LINE Alert
 ```
 
 ---
 
-## 📂 Project Structure
+# 📂 Project Structure
 
 ```text
 stock-alert-system
 │
 ├── .github
 │   └── workflows
-│       └── stock-alert.yml      # GitHub Actions workflow
+│       └── stock-alert.yml
 │
 ├── app
-│   ├── main.py                  # Application entry point
-│   ├── config.py                # Configuration
-│   ├── stock_service.py         # Yahoo Finance integration
-│   ├── aws_service.py           # DynamoDB operations
-│   ├── line_service.py          # LINE Messaging API
-│   ├── get_line_user_id.py      # LINE utility
-│   └── watchlist.json           # Portfolio watchlist
+│   ├── main.py
+│   ├── config.py
+│   │
+│   ├── stock_service.py
+│   ├── drawdown_service.py
+│   ├── aws_service.py
+│   │
+│   ├── portfolio_engine.py
+│   ├── capital_manager.py
+│   ├── recommendation_service.py
+│   │
+│   ├── report_builder.py
+│   ├── email_builder.py
+│   ├── email_sender.py
+│   │
+│   ├── line_service.py
+│   ├── watchlist.json
+│   └── portfolio.json
 │
-├── data                         # Local cache (optional)
-├── docs                         # Documentation
-├── logs                         # Log files
-├── tableau                      # Tableau dashboards
-├── tests                        # Unit tests
+├── data
+├── docs
+├── logs
+├── tableau
+├── tests
 │
-├── .env.example                 # Environment variable template
+├── .env.example
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -70,60 +118,50 @@ stock-alert-system
 
 ---
 
-## ⚙ Tech Stack
+# ⚙ Tech Stack
 
-- Python 3.13
-- GitHub Actions
-- Amazon DynamoDB
-- Yahoo Finance (yfinance)
-- LINE Messaging API
-- boto3
-
----
-
-## 🔔 Notification Rules
-
-Notifications are sent only when:
-
-| Drop from Historical High | Action |
-|--------------------------:|--------|
-| ≥ 2% | Test notification |
-| ≥ 5% | Drop 5% |
-| ≥ 10% | Drop 10% - Consider buying |
-| ≥ 20% | Drop 20% - Strong Buy |
-| ≥ 30% | Drop 30% - Buy Aggressively |
-
-Bond ETFs are excluded from notifications.
+* Python 3.13
+* GitHub Actions
+* Amazon DynamoDB
+* Yahoo Finance (`yfinance`)
+* Amazon SES / SMTP
+* LINE Messaging API
+* boto3
+* pandas
+* openpyxl
 
 ---
 
-## 📱 LINE Notification Example
+# 🔔 Alert Rules
 
-```text
-📈 Stock Alert
+Notifications are sent when the stock price reaches predefined drawdown levels.
 
-📅 Date: 2026-06-21
+| Drawdown from Historical High | Action            |
+| ----------------------------: | ----------------- |
+|                          ≥ 2% | Test Notification |
+|                          ≥ 5% | Monitor           |
+|                         ≥ 10% | Consider Buying   |
+|                         ≥ 20% | Strong Buy        |
+|                         ≥ 30% | Buy Aggressively  |
 
-Ticker: 2330
-Name: TSMC
-
-Historical High:
-1160
-2024-07-11
-
-Today's Close:
-1023
-
-Drop from ATH:
-11.81%
-
-Action:
-🟠 Drop 10% - Consider buying
-```
+Bond ETFs are excluded from drawdown notifications.
 
 ---
 
-## 🔄 Workflow
+# 📧 Daily Investment Brief
+
+The system automatically generates a daily investment report including:
+
+* Portfolio summary
+* Capital pool balances
+* Available investment capital
+* Stock recommendations
+* Moving average alerts
+* Market statistics
+
+---
+
+# 🔄 Current Workflow
 
 ```text
 GitHub Actions
@@ -132,61 +170,115 @@ GitHub Actions
 
         ▼
 
-Download Stock Prices
+Download Market Data
 
         │
 
         ▼
 
-Calculate Historical High
+Update Historical Prices
 
         │
 
         ▼
 
-Save to DynamoDB
+Update Portfolio Status
 
         │
 
         ▼
 
-Check Alert Rules
+Update Capital Status
 
         │
 
         ▼
 
-LINE Notification
+Generate Recommendations
+
+        │
+
+        ▼
+
+Build Daily Report
+
+        │
+
+        ▼
+
+Email Report
+
+        │
+
+        ▼
+
+LINE Alert
 ```
 
 ---
 
-## 📅 Automation Schedule
+# 📅 Automation Schedule
 
-| Market | Taiwan Time | GitHub Actions |
-|---------|-------------|----------------|
-| Taiwan | 14:00 | Weekdays |
-| US | 07:00 | Weekdays |
-
----
-
-## 📌 Future Roadmap
-
-- [ ] Dividend Yield
-- [ ] PE Ratio
-- [ ] RSI
-- [ ] Moving Average (MA20 / MA60)
-- [ ] Fear & Greed Index
-- [ ] AI Buy Recommendation
-- [ ] Portfolio Dashboard
-- [ ] Performance Analytics
+| Market | Taiwan Time | Schedule |
+| ------ | ----------- | -------- |
+| Taiwan | 14:00       | Weekdays |
+| US     | 07:00       | Weekdays |
 
 ---
 
-## 👤 Author
+# 🚧 Project Status
 
-Sharon Wei
+**Current Version:** V1
+
+Current capabilities:
+
+* ✅ Daily stock monitoring
+* ✅ Portfolio tracking
+* ✅ Capital management
+* ✅ Investment recommendations
+* ✅ Daily email reports
+* ✅ LINE notifications
+* ✅ GitHub Actions automation
+
+---
+
+# 🛣 Roadmap
+
+The next milestone is to evolve this project from a monitoring system into a modular investment decision engine.
+
+## Phase 1 — Decision Engine
+
+* [ ] Need Score
+* [ ] Opportunity Score
+* [ ] Decision Engine
+* [ ] Allocation Engine
+
+## Phase 2 — Market Strategy
+
+* [ ] Market State
+* [ ] Dynamic deployment rules
+* [ ] Portfolio health analysis
+* [ ] Risk management
+
+## Phase 3 — Presentation
+
+* [ ] Improved email layout
+* [ ] HTML email template
+* [ ] Rich LINE messages
+
+## Phase 4 — Productization
+
+* [ ] Deployment simulation
+* [ ] Dashboard
+* [ ] Backtesting
+* [ ] AI-assisted investment insights
+
+---
+
+# 👤 Author
+
+**Sharon Wei**
 
 Senior Business Analyst
 
-Built with Python, GitHub Actions, DynamoDB and LINE Messaging API.
+Built with Python, GitHub Actions, Amazon DynamoDB, Yahoo Finance and LINE Messaging API.
